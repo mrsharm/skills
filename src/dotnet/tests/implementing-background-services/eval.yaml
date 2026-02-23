@@ -1,0 +1,41 @@
+scenarios:
+  - name: "Implement a periodic background service with scoped DbContext"
+    prompt: |
+      I need to add a background service to my ASP.NET Core 8 app that runs every 30 seconds and processes pending orders from the database. It needs to:
+      1. Query pending orders using EF Core (AppDbContext)
+      2. Process each order and mark as completed
+      3. Handle errors without crashing the service
+      4. Shut down gracefully when the app stops
+
+      How do I implement this? I tried injecting AppDbContext directly but got an error about scope validation.
+    assertions:
+      - type: "output_matches"
+        pattern: "(IServiceScopeFactory|CreateScope|ServiceProvider)"
+      - type: "output_matches"
+        pattern: "(BackgroundService|IHostedService)"
+      - type: "output_matches"
+        pattern: "(stoppingToken|CancellationToken)"
+      - type: "output_matches"
+        pattern: "(try|catch|Exception)"
+    rubric:
+      - "Explained that BackgroundService is Singleton and DbContext is Scoped — cannot inject directly (captive dependency)"
+      - "Used IServiceScopeFactory to create a new scope per work iteration"
+      - "Retrieved DbContext from the scope via scope.ServiceProvider.GetRequiredService()"
+      - "Disposed the scope properly (using statement or explicit dispose)"
+      - "Wrapped the work loop body in try-catch and logged errors without rethrowing"
+      - "Passed stoppingToken (CancellationToken) to async operations for graceful shutdown"
+      - "Used PeriodicTimer or Task.Delay for timing, and handled OperationCanceledException on shutdown"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "Background service skill should not activate for scheduled jobs question"
+    prompt: "How do I schedule a job to run daily at 3 AM in my ASP.NET Core app using Hangfire?"
+    assertions:
+      - type: "output_not_contains"
+        value: "BackgroundService"
+      - type: "output_not_matches"
+        pattern: "(IHostedService|ExecuteAsync|IServiceScopeFactory)"
+    rubric:
+      - "Did NOT suggest BackgroundService for a Hangfire scheduling question"
+      - "Provided Hangfire-specific guidance using RecurringJob or similar"
+    timeout: 60

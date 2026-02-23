@@ -1,0 +1,28 @@
+scenarios:
+  - name: "Fix captive dependency causing memory leak"
+    prompt: "My ASP.NET Core app has a memory leak. I have a singleton OrderService that takes an AppDbContext in its constructor. The DbContext connections keep growing. Here's my registration code:\n\nservices.AddSingleton<IOrderService, OrderService>();\nservices.AddDbContext<AppDbContext>();\n\nWhat's wrong and how do I fix it?"
+    setup:
+      copy_test_files: true
+    assertions:
+      - type: "output_matches"
+        pattern: "(captive|lifetime|scoped.*singleton|singleton.*scoped)"
+      - type: "output_matches"
+        pattern: "(IServiceScopeFactory|AddScoped|Scoped)"
+    rubric:
+      - "Identified the captive dependency: singleton service capturing a scoped DbContext"
+      - "Explained why this causes a memory leak (DbContext never disposed, holds connections)"
+      - "Suggested fixing by either changing OrderService to Scoped or using IServiceScopeFactory"
+      - "Showed concrete code for the IServiceScopeFactory pattern"
+      - "Mentioned ValidateScopes for detecting these issues in development"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "DI skill should not activate for non-DI architecture questions"
+    prompt: "How do I implement the repository pattern for data access in my .NET app?"
+    assertions:
+      - type: "output_not_matches"
+        pattern: "(captive.*depend|ValidateScopes|lifetime.*mismatch)"
+    rubric:
+      - "Did NOT focus on DI lifetime issues for a general architecture question"
+      - "Focused on repository pattern implementation (interfaces, concrete implementations)"
+    timeout: 60

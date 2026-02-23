@@ -1,0 +1,32 @@
+scenarios:
+  - name: "Diagnose high GC pause times in a .NET service"
+    prompt: |
+      My ASP.NET Core 8 API running in a Linux container has intermittent latency spikes of 200-500ms. The CPU is only at 30% but I suspect garbage collection. How do I diagnose GC pressure and figure out what's causing it? I need specific commands and what to look for.
+    assertions:
+      - type: "output_matches"
+        pattern: "(dotnet-counters|dotnet-gcdump|dotnet-trace)"
+      - type: "output_matches"
+        pattern: "(gen-2|Gen2|gen.2|generation.2|time-in-gc|alloc-rate)"
+      - type: "output_matches"
+        pattern: "(ArrayPool|Span<T>|stackalloc|LOH|Large.Object.Heap)"
+    rubric:
+      - "Recommended starting with dotnet-counters to observe GC metrics in real-time (time-in-gc, gen counts, alloc-rate)"
+      - "Showed the specific dotnet-counters command with GC-relevant counter names"
+      - "Explained how to capture a GC dump using dotnet-gcdump collect"
+      - "Described what to look for in GC metrics: time-in-gc > 10%, frequent Gen2 collections, high alloc-rate"
+      - "Suggested specific fixes based on diagnosis: ArrayPool for buffer reuse, reducing allocations in hot paths"
+      - "Mentioned container-specific GC tuning (GCHeapCount, ServerGC settings)"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "GC pressure skill should not activate for CPU profiling question"
+    prompt: "My .NET app is using 100% CPU. How do I profile it to find which methods are consuming the most CPU time?"
+    assertions:
+      - type: "output_not_contains"
+        value: "dotnet-gcdump"
+      - type: "output_not_matches"
+        pattern: "(time-in-gc|GC pressure|Gen2.*collection|LOH.*fragment)"
+    rubric:
+      - "Did NOT suggest GC diagnostics for a CPU profiling question"
+      - "Suggested CPU profiling tools like dotnet-trace or dotnet-counters for CPU"
+    timeout: 60

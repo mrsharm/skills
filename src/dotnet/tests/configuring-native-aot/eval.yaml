@@ -1,0 +1,31 @@
+scenarios:
+  - name: "Configure existing app for Native AOT publishing"
+    prompt: "I need to publish my ASP.NET Core Minimal API as a Native AOT binary for deployment to AWS Lambda. The app uses System.Text.Json serialization. How do I configure it and fix any AOT warnings?"
+    assertions:
+      - type: "output_contains"
+        value: "PublishAot"
+      - type: "output_matches"
+        pattern: "(JsonSerializable|JsonSerializerContext|source.generat)"
+      - type: "output_matches"
+        pattern: "(IL2|IL3|trim|AOT)"
+    rubric:
+      - "Set PublishAot=true in the .csproj file"
+      - "Created a JsonSerializerContext with [JsonSerializable] attributes for all serialized types"
+      - "Registered the source-generated JSON context with the ASP.NET Core pipeline"
+      - "Explained the need to replace reflection-based serialization with source generators"
+      - "Mentioned common AOT pitfalls like Activator.CreateInstance or dynamic type loading"
+      - "Showed how to publish and verify the AOT binary"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "AOT skill should not activate for standard JIT deployment"
+    prompt: "I want to deploy my ASP.NET Core app to Azure App Service. How do I publish it?"
+    assertions:
+      - type: "output_not_contains"
+        value: "PublishAot"
+      - type: "output_not_matches"
+        pattern: "(JsonSerializerContext|IsAotCompatible|IL2026)"
+    rubric:
+      - "Did NOT suggest AOT publishing for a standard App Service deployment"
+      - "Suggested standard dotnet publish or deployment approach"
+    timeout: 60

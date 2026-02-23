@@ -1,0 +1,42 @@
+scenarios:
+  - name: "Add resilience to HTTP client with retry and circuit breaker"
+    prompt: |
+      I have an ASP.NET Core 8 app that calls an external weather API using HttpClient. The calls fail intermittently with timeouts and 503 errors. I want to add retry logic and a circuit breaker. Here's my current code:
+
+      ```csharp
+      builder.Services.AddHttpClient<IWeatherService, WeatherService>(client =>
+      {
+          client.BaseAddress = new Uri("https://api.weather.com");
+          client.Timeout = TimeSpan.FromSeconds(30);
+      });
+      ```
+
+      How do I add resilience properly using the latest .NET patterns?
+    assertions:
+      - type: "output_matches"
+        pattern: "(Microsoft\\.Extensions\\.Http\\.Resilience|AddStandardResilienceHandler|AddResilienceHandler)"
+      - type: "output_matches"
+        pattern: "(Retry|retry|circuit.?breaker|CircuitBreaker)"
+      - type: "output_not_contains"
+        value: "Policy.Handle"
+    rubric:
+      - "Used Microsoft.Extensions.Http.Resilience package (NOT raw Polly v8 directly)"
+      - "Showed AddStandardResilienceHandler() as the recommended starting point"
+      - "Used Polly v8 API patterns (NOT v7 Policy.Handle/PolicyBuilder syntax)"
+      - "Explained the pipeline stages: rate limiter, total timeout, retry, circuit breaker, attempt timeout"
+      - "Showed how to customize individual strategies if defaults don't fit"
+      - "Mentioned exponential backoff with jitter for retry timing"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "Resilience skill should not activate for simple try-catch question"
+    prompt: "How do I add error handling to my ASP.NET Core controller actions? I want to return proper HTTP error codes."
+    assertions:
+      - type: "output_not_contains"
+        value: "AddStandardResilienceHandler"
+      - type: "output_not_matches"
+        pattern: "(ResilienceHandler|circuit.?breaker|Polly)"
+    rubric:
+      - "Did NOT suggest resilience/Polly patterns for a basic error handling question"
+      - "Suggested exception middleware, ProblemDetails, or try-catch patterns instead"
+    timeout: 60
