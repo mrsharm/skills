@@ -1,0 +1,34 @@
+scenarios:
+  - name: "Create CRUD Minimal API for product catalog"
+    prompt: "I need to create a simple REST API for managing a product catalog. It should support CRUD operations for products with name, price, and category."
+    assertions:
+      - type: "output_matches"
+        pattern: "(MapGet|MapPost|MapPut|MapDelete)"
+      - type: "output_matches"
+        pattern: "(WebApplication|app\\.Map)"
+      - type: "output_matches"
+        pattern: "(dotnet new web|dotnet run)"
+    rubric:
+      - "Created a new ASP.NET Core project using dotnet new web (not console or mvc)"
+      - "Defined a Product data model with name, price, and category properties"
+      - "Implemented GET endpoint to list/retrieve products"
+      - "Implemented POST endpoint to create products with proper 201 Created response"
+      - "Implemented PUT endpoint to update existing products"
+      - "Implemented DELETE endpoint to remove products"
+      - "Used MapGroup for route organization"
+      - "Built and ran the application successfully"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "Minimal API skill should not activate for existing MVC project"
+    prompt: "I have an ASP.NET MVC project with controllers. Can you add a new ProductsController with CRUD actions?"
+    assertions:
+      - type: "output_not_contains"
+        value: "dotnet new web"
+      - type: "output_not_matches"
+        pattern: "(MapGet|MapPost|app\\.Map)"
+    rubric:
+      - "Did NOT suggest creating a Minimal API or using Map* methods"
+      - "Created a proper MVC controller with action methods"
+      - "Used controller-based patterns (ControllerBase, [HttpGet], [HttpPost], etc.)"
+    timeout: 60

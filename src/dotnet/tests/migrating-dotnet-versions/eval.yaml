@@ -1,0 +1,33 @@
+scenarios:
+  - name: "Migrate .NET 6 web API to .NET 8"
+    prompt: "I have a .NET 6 web API project that I need to upgrade to .NET 8. Can you migrate it?"
+    setup:
+      copy_test_files: true
+    assertions:
+      - type: "output_matches"
+        pattern: "(net8\\.0|TargetFramework)"
+      - type: "output_matches"
+        pattern: "(dotnet build|dotnet restore)"
+    rubric:
+      - "Verified the target .NET 8 SDK is installed (dotnet --list-sdks)"
+      - "Identified current target framework version in .csproj files"
+      - "Updated TargetFramework from net6.0 to net8.0"
+      - "Updated NuGet packages to .NET 8 compatible versions"
+      - "Ran dotnet build to verify compilation succeeds after migration"
+      - "Addressed any breaking changes or obsolete API warnings"
+      - "Ran dotnet test (if tests exist) to verify no regressions"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "Migration skill should not activate for new projects"
+    prompt: "I want to create a brand new .NET 8 console application from scratch."
+    assertions:
+      - type: "output_not_contains"
+        value: "upgrade-assistant"
+      - type: "output_not_matches"
+        pattern: "(migrat|breaking.*change|TFM.*update)"
+    rubric:
+      - "Did NOT suggest migration or upgrade workflows for a new project"
+      - "Created a new project using dotnet new or equivalent"
+      - "Focused on scaffolding rather than migration concerns"
+    timeout: 60

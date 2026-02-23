@@ -1,0 +1,35 @@
+scenarios:
+  - name: "Write xUnit tests for OrderService"
+    prompt: "I need to add unit tests for my OrderService class that processes orders and sends notifications. Can you set up tests?"
+    setup:
+      copy_test_files: true
+    assertions:
+      - type: "output_matches"
+        pattern: "(xunit|xUnit|dotnet new xunit)"
+      - type: "output_matches"
+        pattern: "(\\[Fact\\]|\\[Theory\\])"
+      - type: "output_matches"
+        pattern: "(dotnet test|dotnet build)"
+    rubric:
+      - "Created or verified an xUnit test project with proper package references"
+      - "Added a project reference from the test project to the source project"
+      - "Used the Arrange-Act-Assert pattern in test methods"
+      - "Wrote tests covering the main OrderService functionality"
+      - "Used mocking (Moq or NSubstitute) for IOrderRepository and INotificationService dependencies"
+      - "Used descriptive test method names (MethodName_Scenario_ExpectedBehavior)"
+      - "Ran dotnet test and verified tests pass"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "Testing skill should not suggest xUnit for existing NUnit project"
+    prompt: "I have an existing NUnit test project. Can you add more tests for my UserService class?"
+    assertions:
+      - type: "output_not_contains"
+        value: "dotnet new xunit"
+      - type: "output_not_matches"
+        pattern: "(\\[Fact\\]|\\[Theory\\])"
+    rubric:
+      - "Did NOT suggest creating an xUnit test project or using xUnit attributes"
+      - "Used NUnit attributes ([Test], [TestCase], etc.)"
+      - "Respected the existing test framework choice"
+    timeout: 60

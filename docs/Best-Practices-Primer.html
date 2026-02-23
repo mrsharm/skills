@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Skill Authoring Best Practices Primer</title>
+<style>
+  body { font-family: Calibri, 'Segoe UI', sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.6; max-width: 8.5in; margin: 0.75in auto; }
+  h1 { font-size: 24pt; color: #0078d4; border-bottom: 3px solid #0078d4; padding-bottom: 8px; }
+  h2 { font-size: 16pt; color: #106ebe; margin-top: 28px; border-bottom: 1px solid #ccc; padding-bottom: 4px; page-break-before: always; }
+  h3 { font-size: 12pt; color: #333; margin-top: 18px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+  th { background-color: #0078d4; color: white; padding: 8px 10px; text-align: left; }
+  td { padding: 6px 10px; border: 1px solid #ddd; }
+  tr:nth-child(even) { background-color: #f5f5f5; }
+  code { font-family: Consolas, 'Courier New', monospace; background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 10pt; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 14px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; overflow-x: auto; line-height: 1.5; }
+  pre .cmt { color: #6a9955; } pre .kw { color: #569cd6; } pre .str { color: #ce9178; }
+  blockquote { border-left: 4px solid #0078d4; margin: 16px 0; padding: 8px 16px; background: #f0f7ff; color: #333; }
+  .callout { background: #fff3cd; border: 1px solid #ffc107; padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+  .callout-info { background: #e7f3ff; border-color: #0078d4; }
+  .callout-success { background: #d4edda; border-color: #28a745; }
+  .callout-danger { background: #f8d7da; border-color: #dc3545; }
+  .good { color: #28a745; font-weight: bold; } .bad { color: #dc3545; font-weight: bold; }
+  .vs-table td:first-child { background: #f8d7da; } .vs-table td:last-child { background: #d4edda; }
+  .check { list-style: none; padding-left: 0; } .check li { padding: 3px 0; } .check li::before { content: "☐ "; }
+  .cover { text-align: center; padding: 100px 0 60px 0; }
+  .cover h1 { font-size: 28pt; border: none; }
+  .cover .subtitle { font-size: 14pt; color: #555; margin-top: 6px; }
+  .cover .meta { font-size: 11pt; color: #888; margin-top: 40px; }
+  .footer { text-align: center; color: #999; font-size: 9pt; margin-top: 40px; border-top: 1px solid #ddd; padding-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════  COVER  ═══════════════════ -->
+<div class="cover">
+  <h1 style="font-size:28pt;">Best Practices for<br>Authoring Skills</h1>
+  <div class="subtitle">A learning paper for .NET teams building agent skills</div>
+  <div class="meta">
+    <p><strong>Author:</strong> Mushtaq Shariff</p>
+    <p><strong>Date:</strong> February 2026</p>
+    <p><strong>Source:</strong> <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices">platform.claude.com — Skill Authoring Best Practices</a></p>
+  </div>
+</div>
+
+<!-- ═══════════════════  INTRODUCTION  ═══════════════════ -->
+<h2 style="page-break-before:always;">Introduction</h2>
+
+<p>This learning paper covers some best practices I have discovered from authoring skills for my work in the SRE Agent and is essentially distilled from the <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices">official Claude Skill authoring best practices</a> that's been adapted for .NET skill development.</p>
+
+<p>If you're about to write your first skill, or you've written one that didn't work the way you expected, this paper will save you from repeating the mistakes I've already made. The principles here are not theoretical — they come from observing what actually happens when an agent loads your skill in production.</p>
+
+<h3>Summary of Best Practices: 8 Golden Rules</h3>
+
+<table>
+  <tr><th style="width:22%;">Rule</th><th>Detail</th></tr>
+  <tr><td><strong>Be concise</strong></td><td>Models like Claude Sonnet 4.5 and GPT-5.2 are trained on vast amounts of .NET code, docs, and issues. Only add context the model doesn't already have — every redundant token pushes useful conversation history out of the context window.</td></tr>
+  <tr><td><strong>Match specificity to risk</strong></td><td>Use exact, copy-paste scripts for fragile operations like database migrations and deployments where there's one correct path. Use loose, high-level guidance for open-ended tasks like code review or refactoring where the agent needs room to adapt to context.</td></tr>
+  <tr><td><strong>Structure well</strong></td><td>Start every SKILL.md with clear YAML frontmatter. The <code>description</code> field must state both <em>what</em> the skill does and <em>when</em> to use it — this is what the agent reads when deciding which skill to load from 100+ candidates.</td></tr>
+  <tr><td><strong>Progressive disclosure</strong></td><td>Keep your SKILL.md under 500 lines. Split detailed references, API docs, and examples into sibling files that the agent loads only when needed — so a simple question doesn't force the entire reference manual into the context window.</td></tr>
+  <tr><td><strong>Feedback loops</strong></td><td>Every workflow step should be followed by a validation step: <code>dotnet build</code>, <code>dotnet test</code>, or a manual check. Without this, agents batch 5 changes and discover 3 are broken. With it, each change is verified before the next one starts.</td></tr>
+  <tr><td><strong>Defaults, not menus</strong></td><td>Recommend one tool or approach as the clear default (e.g. "Use xUnit"). Mention alternatives only as escape hatches for specific cases. When agents see multiple options presented equally, they ask the user to choose — breaking the autonomous workflow.</td></tr>
+  <tr><td><strong>Evaluations first</strong></td><td>Before writing a single line of your skill, define 3+ test scenarios: write the prompt, the ideal behavior (<code>good.md</code>), and the typical failure (<code>bad.md</code>). This forces you to define what "good" looks like before you start writing instructions.</td></tr>
+  <tr><td><strong>Test across models</strong></td><td>Verify your skill works with GPT-5.2, Haiku, Sonnet, and Opus. Haiku may need more explicit guidance to follow your workflow. Opus may over-follow verbose instructions. A skill that only works on one model isn't ready to ship.</td></tr>
+</table>
+
+<!-- ═══════════════════  SECTION 1: CONCISENESS  ═══════════════════ -->
+<h2>1. Be Concise</h2>
+
+<p>The context window is a shared resource that must be conserved as best as possible. The addition of your skill in the context window must compete with the rest of the components of the conversation history such as tool call outputs, system prompts and other skill's metadata.</p>
+
+<p>It is imperative to keep the skill as concise as possible: state of the art models such as Claude Sonnet 4.5 have been trained on a large part of dotnet's code, documentation and issues amongst other inputs.</p>
+
+<p>It's a redundant waste of the context window if you decide to include details that the model is trained on for which it'll produce better results than you would do. <strong>Only add context the model doesn't already have.</strong></p>
+
+<h3>The Token Budget Test</h3>
+<p>Before you add any paragraph to a skill, run it through this filter:</p>
+
+<table>
+  <tr><th>Questions</th><th>If "yes", keep it</th><th>If "no", cut it</th></tr>
+  <tr><td>Does the model really need this explanation?</td><td>✅</td><td>❌</td></tr>
+  <tr><td>Can I assume the model knows this?</td><td>❌</td><td>✅</td></tr>
+  <tr><td>Does this paragraph justify its token cost?</td><td>✅</td><td>❌</td></tr>
+</table>
+
+<h3>What This Looks Like in Practice</h3>
+
+<table class="vs-table">
+  <tr><th style="background:#dc3545;">❌ Bad (~150 tokens) — Explains what the model already knows</th><th style="background:#28a745;">✅ Good (~50 tokens) — Only the specific pattern</th></tr>
+  <tr>
+    <td>
+      "JSON (JavaScript Object Notation) is a lightweight data format. To read a JSON file in C#, you'll need to use a serialization library. Several options exist including Newtonsoft.Json and System.Text.Json. We recommend System.Text.Json because it's built in. First, install it..."
+    </td>
+    <td>
+      <pre style="margin:0;font-size:9pt;">## Read JSON configuration
+Use System.Text.Json:
+```csharp
+using var stream = File.OpenRead("appsettings.json");
+var config = await JsonSerializer
+    .DeserializeAsync&lt;AppConfig&gt;(stream);
+```</pre>
+    </td>
+  </tr>
+</table>
+
+<p>The bad version wastes tokens explaining what JSON is. The model was trained on millions of JSON examples — it does not need you to explain the format. What it <em>might</em> not know is your team's preferred deserialization pattern. That's the only part worth including.</p>
+
+<p>I've found this is the hardest rule for experienced developers to follow, because our instinct is to be thorough. But thoroughness in a skill is actively counterproductive — every unnecessary token pushes useful conversation history out of the context window.</p>
+
+<!-- ═══════════════════  SECTION 2: DEGREES OF FREEDOM  ═══════════════════ -->
+<h2>2. Match Specificity to Risk</h2>
+
+<p>Not all tasks carry the same risk. Refactoring a utility method is low-stakes — there are many valid approaches and the tests will catch mistakes. But running a database migration or deployment script is high-stakes — there's exactly one correct way and getting it wrong has real consequences.</p>
+
+<p>Your skill should match its level of specificity to the fragility of the task. I think of this as a spectrum of "degrees of freedom" you give the agent:</p>
+
+<table>
+  <tr><th>Freedom Level</th><th>When to Use</th><th>.NET Example</th></tr>
+  <tr><td><strong>High</strong> (text instructions)</td><td>Multiple valid approaches; the right answer depends on context the agent can see</td><td>Code review suggestions, refactoring recommendations</td></tr>
+  <tr><td><strong>Medium</strong> (pseudocode/templates)</td><td>A preferred pattern exists but some variation is acceptable</td><td>Test scaffolding with xUnit, report generation templates</td></tr>
+  <tr><td><strong>Low</strong> (exact scripts, no deviation)</td><td>The operation is fragile, error-prone, or destructive</td><td>Database migrations, deployment scripts, <code>dotnet publish</code> for AOT</td></tr>
+</table>
+
+<blockquote>
+  <strong>The analogy I use:</strong> Think of the agent as a robot exploring a path.
+  <ul>
+    <li><strong>Narrow bridge with cliffs on both sides</strong> — There's only one safe way forward. Provide exact commands with no room for improvisation. <em>(Low freedom)</em></li>
+    <li><strong>Open field with no hazards</strong> — Many routes lead to the destination. Give a general heading and trust the agent to navigate. <em>(High freedom)</em></li>
+  </ul>
+</blockquote>
+
+<p>In my experience authoring .NET skills, the mistake I see most often is skills that are too prescriptive for open-ended tasks (the agent ignores the instructions because it "knows better") or too loose for fragile tasks (the agent improvises and breaks something). Getting this calibration right is worth the time investment.</p>
+
+<h3>How This Applies to Our .NET Skills</h3>
+<table>
+  <tr><th>Skill</th><th>Freedom</th><th>Why This Level</th></tr>
+  <tr><td><code>analyzing-build-errors</code></td><td>Low</td><td>CS/NU/MSB error codes each have a specific resolution. Guessing wastes time and often introduces new errors.</td></tr>
+  <tr><td><code>writing-xunit-tests</code></td><td>Medium</td><td>The Arrange-Act-Assert pattern and project setup are fixed, but the test logic varies for every class under test.</td></tr>
+  <tr><td><code>creating-minimal-apis</code></td><td>Medium</td><td><code>MapGroup</code> and endpoint organization are the preferred pattern, but the data model and business logic will differ.</td></tr>
+  <tr><td><code>profiling-dotnet-apps</code></td><td>Low (commands) / High (interpretation)</td><td>The <code>dotnet-counters</code> and <code>dotnet-trace</code> commands must be exact — a wrong flag produces useless output. But interpreting the results requires context the agent can see (the user's symptoms, the counter values).</td></tr>
+</table>
+
+<!-- ═══════════════════  SECTION 3: STRUCTURE  ═══════════════════ -->
+<h2>3. Structure Your SKILL.md Well</h2>
+
+<p>The structure of your skill file determines whether the agent can quickly find the right information or wastes tokens reading irrelevant sections. I've learned that a well-structured skill is worth more than a comprehensive one — the agent doesn't need to read everything, it needs to find the right thing fast.</p>
+
+<h3>3.1 YAML Frontmatter — The Discovery Layer</h3>
+
+<p>Every <code>SKILL.md</code> begins with YAML frontmatter that controls when the skill gets loaded. This is the single most important part of your skill because if the frontmatter is wrong, the agent will never select it in the first place.</p>
+
+<pre>
+---
+name: debugging-memory-leaks
+description: Diagnose and fix memory leaks in .NET applications
+  using diagnostic tools, heap analysis, and GC root tracing.
+  Use when a .NET application shows increasing memory usage
+  or OutOfMemoryException.
+---
+</pre>
+
+<table>
+  <tr><th>Field</th><th>Rules</th></tr>
+  <tr><td><code>name</code></td><td>Max 64 chars &bull; Lowercase + hyphens only &bull; No reserved words (<code>anthropic</code>, <code>claude</code>)</td></tr>
+  <tr><td><code>description</code></td><td>Max 1024 chars &bull; Third person &bull; Must include <em>what</em> it does AND <em>when</em> to use it &bull; No XML tags</td></tr>
+</table>
+
+<p>The description is what the agent reads when deciding which skill to load from potentially 100+ available skills. Think of it as the one sentence a colleague reads before deciding whether to open your document. If it says "Helps with .NET performance", they'll skip it. If it says "Profile .NET application performance using dotnet-counters, dotnet-trace, and dotnet-dump. Use when diagnosing CPU spikes, memory issues, or slow request handling" — now they know exactly when this is relevant.</p>
+
+<table class="vs-table">
+  <tr><th style="background:#dc3545;">❌ Vague — never gets selected</th><th style="background:#28a745;">✅ Specific — triggers on the right prompts</th></tr>
+  <tr>
+    <td><code>description: Helps with .NET performance</code></td>
+    <td><code>description: Profile .NET application performance using dotnet-counters, dotnet-trace, and dotnet-dump. Use when diagnosing CPU spikes, memory issues, or slow request handling.</code></td>
+  </tr>
+</table>
+
+<h3>3.2 Naming Convention</h3>
+
+<p>Use <strong>gerund form</strong> (verb + -ing) for skill names. This convention makes it immediately clear what the skill <em>does</em> when scanning a list:</p>
+
+<table>
+  <tr><th>✅ Good (clear at a glance)</th><th>❌ Bad (meaningless)</th></tr>
+  <tr><td><code>profiling-dotnet-apps</code></td><td><code>helper</code></td></tr>
+  <tr><td><code>writing-xunit-tests</code></td><td><code>utils</code></td></tr>
+  <tr><td><code>debugging-memory-leaks</code></td><td><code>tools</code></td></tr>
+  <tr><td><code>migrating-dotnet-versions</code></td><td><code>dotnet-stuff</code></td></tr>
+</table>
+
+<h3>3.3 Progressive Disclosure — The 500-Line Rule</h3>
+
+<p>Keep <code>SKILL.md</code> under <strong>500 lines</strong>. If your skill needs more content, split the additional material into sibling files. The model only loads these when it actually needs them, which means you're not paying the token cost for a comprehensive API reference every time someone asks a simple question.</p>
+
+<pre>
+my-skill/
+├── SKILL.md              <span class="cmt"># Main instructions (loaded when triggered)</span>
+├── REFERENCE.md          <span class="cmt"># Detailed reference (loaded only when needed)</span>
+├── EXAMPLES.md           <span class="cmt"># Usage examples (loaded only when needed)</span>
+└── scripts/
+    └── validate.csx      <span class="cmt"># Utility script (executed, never loaded into context)</span>
+</pre>
+
+<div class="callout-danger callout">
+  <strong>Critical Rule I Learned the Hard Way:</strong> Keep references <strong>one level deep</strong> from SKILL.md. I initially had SKILL.md → ADVANCED.md → DETAILS.md, and observed the agent only partially reading DETAILS.md (using <code>head -100</code> instead of reading the full file). Link everything directly from SKILL.md — no chains.
+</div>
+
+<h3>3.4 The Section Template</h3>
+
+<p>Every skill I write follows the same section structure. This consistency means the agent learns the pattern and can navigate any skill quickly:</p>
+
+<table>
+  <tr><th>Section</th><th>Purpose</th></tr>
+  <tr><td><code>## When to Use</code></td><td>Activation conditions — what user prompts trigger this skill</td></tr>
+  <tr><td><code>## When Not to Use</code></td><td>Boundary guard — redirect to other skills when this one doesn't apply</td></tr>
+  <tr><td><code>## Inputs</code></td><td>What the agent needs from the user before starting</td></tr>
+  <tr><td><code>## Workflow</code></td><td>Numbered steps with explicit checkpoints between them</td></tr>
+  <tr><td><code>## Validation</code></td><td>A checklist the agent uses to verify it succeeded</td></tr>
+  <tr><td><code>## Common Pitfalls</code></td><td>Known traps with specific, tested solutions</td></tr>
+</table>
+
+<!-- ═══════════════════  SECTION 4: WORKFLOWS  ═══════════════════ -->
+<h2>4. Build Feedback Loops Into Every Workflow</h2>
+
+<p>This is, in my opinion, the single most important pattern in skill authoring. Without feedback loops, I've observed agents make five changes in a row, then discover that three of them broke the build. With feedback loops, each change is validated immediately, and errors are caught before they compound.</p>
+
+<h3>4.1 The Core Pattern: Change → Validate → Fix → Repeat</h3>
+
+<pre>
+1. Make your code changes
+2. <strong>Validate immediately:</strong> dotnet build --no-restore
+3. If build fails → fix compiler errors → rebuild
+4. <strong>Run tests:</strong> dotnet test --no-build
+5. If tests fail → fix → rebuild → retest
+6. <strong>Only proceed when both pass</strong>
+</pre>
+
+<p>I include this pattern in every workflow, even if it feels repetitive. The cost of one extra "validate" step in the instructions is negligible compared to the cost of the agent producing a broken result and the user having to restart.</p>
+
+<h3>4.2 Give the Agent a Copyable Checklist</h3>
+
+<p>For complex workflows, provide a checklist the agent can copy into its response and check off as it progresses. This prevents the agent from skipping steps when it "thinks" it knows what comes next:</p>
+
+<pre>
+Copy this checklist and track your progress:
+
+- [ ] Step 1: Check the .NET SDK version
+- [ ] Step 2: Scan all .csproj files for current TFM
+- [ ] Step 3: Update TargetFramework in each project
+- [ ] Step 4: Run dotnet restore
+- [ ] Step 5: Run dotnet build — fix all errors before continuing
+- [ ] Step 6: Run dotnet test — fix any test failures
+- [ ] Step 7: Verify target framework updated in all projects
+</pre>
+
+<div class="callout callout-success">
+  <strong>Why this works:</strong> The checklist creates a visible contract between the skill and the agent. The agent can see what it's done and what remains. Without it, I've observed agents skip validation steps 60–70% of the time because they're "confident" the changes are correct.
+</div>
+
+<!-- ═══════════════════  SECTION 5: CONTENT RULES  ═══════════════════ -->
+<h2>5. Content Guidelines</h2>
+
+<p>These are the content rules I enforce in every skill review. They seem minor individually but compound into a significantly better agent experience when followed consistently.</p>
+
+<h3>5.1 Never Include Time-Sensitive Information</h3>
+
+<p>Skills persist far longer than you expect. If you write "use the new API introduced in .NET 9" today, that statement becomes confusing when .NET 11 is current and.NET 9 is the "old" API. Instead, document the current recommended method and put deprecated approaches in a collapsible "Old patterns" section.</p>
+
+<table class="vs-table">
+  <tr><th style="background:#dc3545;">❌ Bad — becomes wrong over time</th><th style="background:#28a745;">✅ Good — always current</th></tr>
+  <tr>
+    <td>"If you're doing this before August 2025, use the old API. After August 2025, use the new API."</td>
+    <td>Document the current method as the default. Put the deprecated approach in an "Old patterns" collapsible section with a note that it's no longer recommended.</td>
+  </tr>
+</table>
+
+<h3>5.2 Use Consistent Terminology</h3>
+
+<p>Pick one term for each concept and use it everywhere throughout the skill. Inconsistent terminology confuses the agent — it may treat "assembly", "DLL", and "binary" as three different things when you meant the same concept.</p>
+
+<table>
+  <tr><th>✅ Consistent (use throughout)</th><th>❌ Inconsistent (confuses the agent)</th></tr>
+  <tr><td>Always "assembly"</td><td>Mix of "assembly", "DLL", "binary", "module"</td></tr>
+  <tr><td>Always "project file"</td><td>Mix of "csproj", ".csproj file", "project config"</td></tr>
+  <tr><td>Always "extract"</td><td>Mix of "extract", "pull", "get", "retrieve"</td></tr>
+</table>
+
+<h3>5.3 Always Use Forward Slashes in File Paths</h3>
+
+<p>This one bit me early on. Windows-style backslash paths (<code>scripts\helper.py</code>) break on Linux and macOS. Unix-style forward slashes (<code>scripts/helper.py</code>) work on every platform, including Windows. There's no reason to use backslashes — ever.</p>
+
+<h3>5.4 Provide Defaults, Not Menus</h3>
+
+<p>When the agent encounters "You can use xUnit, NUnit, or MSTest", it often asks the user which one they'd prefer — wasting a turn and breaking the autonomous workflow. Instead, provide a clear default with an escape hatch for the exception case:</p>
+
+<table class="vs-table">
+  <tr><th style="background:#dc3545;">❌ Bad — agent asks the user to choose</th><th style="background:#28a745;">✅ Good — agent proceeds autonomously</th></tr>
+  <tr>
+    <td>"You can use xUnit, or NUnit, or MSTest, or..."</td>
+    <td>"Use xUnit for new test projects.<br><br>For existing NUnit projects, follow the NUnit-specific section below."</td>
+  </tr>
+</table>
+
+<p>This pattern — strong default + escape hatch — is something I apply to every choice point in a skill. The agent should almost never need to ask the user to choose between options.</p>
+
+<!-- ═══════════════════  SECTION 6: PATTERNS  ═══════════════════ -->
+<h2>6. Common Patterns That Work Well</h2>
+
+<p>Through trial and error, I've found three patterns that consistently produce good agent behavior. I use at least one of these in every skill I write.</p>
+
+<h3>6.1 The Template Pattern</h3>
+<p>When you need the agent to produce output in a specific format, provide a template. Match the strictness to how critical the format is:</p>
+
+<ul>
+  <li><strong>Strict</strong> (for API responses, migration scripts): "ALWAYS use this exact template structure"</li>
+  <li><strong>Flexible</strong> (for reports, documentation): "Here is a sensible default format, but adjust sections as needed for the specific context"</li>
+</ul>
+
+<h3>6.2 The Examples Pattern</h3>
+<p>Input/output pairs teach style and tone better than any amount of description. I've found that 2–3 concrete examples communicate the expected behavior far more reliably than a paragraph of prose:</p>
+
+<pre>
+<strong>Example 1:</strong>
+Input: Added null check to user service
+Output: fix(UserService): add null-check guard for UserDto parameter
+
+<strong>Example 2:</strong>
+Input: Upgraded target framework
+Output: chore(MyApp.csproj): migrate TargetFramework from net8.0 to net9.0
+
+<strong>Example 3:</strong>
+Input: Fixed thread pool starvation in report handler
+Output: perf(ReportHandler): convert blocking I/O to async/await
+</pre>
+
+<h3>6.3 The Conditional Workflow Pattern</h3>
+<p>When a skill handles multiple scenarios, guide the agent through the decision point explicitly. Don't make it infer which path to take — spell it out:</p>
+
+<pre>
+1. Determine the scenario:
+
+   <strong>Creating a new .NET project?</strong>    → Follow "Creation workflow" below
+   <strong>Migrating an existing project?</strong>  → Follow "Migration workflow" below
+   <strong>Adding a skill to the repo?</strong>     → Follow "Skill scaffolding workflow" below
+</pre>
+
+<p>Without this structure, I've seen agents pick the wrong workflow branch about 30% of the time — they'll start migrating when they should be creating, or vice versa. Explicit decision trees eliminate this ambiguity.</p>
+
+<!-- ═══════════════════  SECTION 7: EVALUATION  ═══════════════════ -->
+<h2>7. Evaluation-Driven Development</h2>
+
+<p>This is the practice that had the single biggest impact on the quality of my skills: <strong>write the test cases before you write the skill</strong>. It sounds counterintuitive, but it forces you to define what "good" actually looks like before you start writing instructions.</p>
+
+<h3>7.1 The Process</h3>
+
+<ol>
+  <li><strong>Identify the gap.</strong> Run the model on a representative task <em>without</em> any skill loaded. Document exactly where it fails — what it gets wrong, what it skips, what it asks unnecessarily.</li>
+  <li><strong>Create evaluations.</strong> Build at least 3 test scenarios that expose these gaps. For each, write a <code>good.md</code> (ideal behavior) and <code>bad.md</code> (the failure you just observed).</li>
+  <li><strong>Establish baseline.</strong> Score the model's current behavior against your rubric. This is your "before" measurement.</li>
+  <li><strong>Write minimal instructions.</strong> Only enough to address the gaps you identified. Resist the urge to be comprehensive — you're shooting for the minimum effective dose.</li>
+  <li><strong>Iterate.</strong> Run the model with the skill, score it, compare against baseline. If it doesn't improve, the skill has a problem — either it's not concise enough, the description doesn't trigger correctly, or the workflow has a gap.</li>
+</ol>
+
+<h3>7.2 The Two-Instance Method</h3>
+
+<p>The most effective skill development workflow I've found involves two separate instances of the model:</p>
+
+<table>
+  <tr><th>Instance</th><th>Role</th><th>What You Do</th></tr>
+  <tr><td><strong>Claude A</strong></td><td>The Author</td><td>Helps you design and refine the skill text. Has full context on the best practices, your existing skills, and the specific gap you're addressing.</td></tr>
+  <tr><td><strong>Claude B</strong></td><td>The Tester</td><td>A fresh instance with no history. Load the skill and give it the real task. Observe what it does — does it follow the workflow? Does it skip steps? Does it ask unnecessary questions?</td></tr>
+</table>
+
+<p>The cycle is: Ask Claude A to write the skill → Load it in Claude B → Observe Claude B's behavior → Bring the observations back to Claude A → Refine → Repeat until Claude B consistently produces good results.</p>
+
+<h3>7.3 What to Watch For During Testing</h3>
+
+<p>When observing the agent use your skill, pay close attention to these signals:</p>
+
+<table>
+  <tr><th>What You Observe</th><th>What It Means</th><th>How to Fix It</th></tr>
+  <tr><td>Agent reads files in an order you didn't expect</td><td>Your skill's structure isn't intuitive</td><td>Reorganize the navigation in SKILL.md</td></tr>
+  <tr><td>Agent misses important reference files</td><td>The links aren't prominent or explicit enough</td><td>Move references higher in the section; make them bold</td></tr>
+  <tr><td>Agent re-reads the same file multiple times</td><td>That content should probably be in the main SKILL.md</td><td>Inline the frequently-accessed content</td></tr>
+  <tr><td>Agent never accesses a bundled file</td><td>The file is either unnecessary or poorly signaled</td><td>Remove it or improve the reference text that points to it</td></tr>
+  <tr><td>Agent asks the user to choose between options</td><td>Your skill presents too many alternatives</td><td>Pick a default; move alternatives to escape-hatch sections</td></tr>
+</table>
+
+<!-- ═══════════════════  SECTION 8: ANTI-PATTERNS  ═══════════════════ -->
+<h2>8. Anti-Patterns I've Encountered</h2>
+
+<p>These are the mistakes I've either made myself or seen in skill reviews. Every one of them causes observable degradation in agent behavior.</p>
+
+<table>
+  <tr><th>Anti-Pattern</th><th>Why It's a Problem</th><th>The Fix</th></tr>
+  <tr><td><strong>Windows-style paths</strong></td><td>Breaks on Linux/macOS containers and CI environments</td><td>Always use forward slashes: <code>scripts/helper.py</code></td></tr>
+  <tr><td><strong>Too many options presented</strong></td><td>Agent gets paralyzed or asks the user to pick, breaking autonomous flow</td><td>Provide one strong default with an escape hatch for exceptions</td></tr>
+  <tr><td><strong>Over-explaining fundamentals</strong></td><td>Wastes precious context window tokens on things the model already knows</td><td>Assume the model understands common .NET concepts. Only explain what's unique to your workflow.</td></tr>
+  <tr><td><strong>Deeply nested file references</strong></td><td>Agent partially reads files that are 2+ levels deep (uses <code>head -100</code> instead of full read)</td><td>Link all reference files directly from SKILL.md — no chains</td></tr>
+  <tr><td><strong>Time-sensitive content</strong></td><td>Becomes wrong over time; the agent confidently follows stale instructions</td><td>Document the current method; put deprecated paths in collapsible "Old patterns" sections</td></tr>
+  <tr><td><strong>Vague descriptions</strong></td><td>Skill never gets selected because the description doesn't match user prompts</td><td>Include specific trigger keywords, tool names, and error codes in the description</td></tr>
+  <tr><td><strong>"Voodoo constants"</strong> (unexplained magic numbers)</td><td>Agent can't reason about whether a value is appropriate for the user's context</td><td>Document why every value was chosen: <code># 30s timeout — typical HTTP request completion window</code></td></tr>
+  <tr><td><strong>Scripts that punt errors</strong></td><td>When a script fails with a generic error, the agent guesses at recovery and often makes things worse</td><td>Handle errors explicitly: create fallback paths, print diagnostic messages, suggest specific fixes</td></tr>
+</table>
+
+<!-- ═══════════════════  SECTION 9: CHECKLIST  ═══════════════════ -->
+<h2>9. Pre-Ship Checklist</h2>
+
+<p>I run through this checklist before submitting any skill for review. I recommend printing it out (or copying it into your PR template) until it becomes second nature.</p>
+
+<h3>Core Quality</h3>
+<ul class="check">
+  <li>Description is specific and includes key trigger terms the user would type</li>
+  <li>Description includes <em>what</em> the skill does AND <em>when</em> to use it</li>
+  <li>SKILL.md body is under 500 lines</li>
+  <li>Additional details are in separate sibling files (if needed)</li>
+  <li>No time-sensitive information anywhere in the skill</li>
+  <li>Consistent terminology throughout (one term per concept)</li>
+  <li>Examples are concrete with real code, not abstract descriptions</li>
+  <li>All file references are one level deep from SKILL.md</li>
+  <li>Progressive disclosure is used — agent doesn't load what it doesn't need</li>
+  <li>Workflows have clear, numbered steps with validation checkpoints</li>
+</ul>
+
+<h3>Code and Scripts</h3>
+<ul class="check">
+  <li>Scripts handle errors explicitly rather than punting to the agent</li>
+  <li>Error messages are specific and actionable</li>
+  <li>No unexplained "magic numbers" — all values have inline documentation</li>
+  <li>Required packages are listed with exact versions in the instructions</li>
+  <li>No Windows-style backslash paths anywhere (all forward slashes)</li>
+  <li>Critical operations have explicit validation/verification steps</li>
+  <li>Quality-critical tasks include feedback loops (change → validate → fix)</li>
+</ul>
+
+<h3>Testing</h3>
+<ul class="check">
+  <li>At least 3 test evaluations created (README.md + good.md + bad.md)</li>
+  <li>Tested with multiple models (Haiku needs more guidance; Opus may over-follow)</li>
+  <li>Tested with real usage scenarios, not synthetic examples</li>
+  <li>Team feedback incorporated from at least one reviewer who wasn't the author</li>
+  <li>SkillEvaluator calibration passes (good ≥ 0.85, bad ≤ 0.40)</li>
+</ul>
+
+<div class="callout-info callout">
+  <strong>Final thought:</strong> The best skills I've authored are the shortest ones. If you find yourself writing more than 300 lines in SKILL.md, step back and ask: "Am I explaining what the model already knows, or am I adding genuine value?" The answer to that question is the difference between a skill that works and one that's ignored.
+</div>
+
+<div class="footer">
+  Best Practices for Authoring Skills &bull; Mushtaq Shariff &bull; February 2026<br>
+  Source: <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices">platform.claude.com — Skill Authoring Best Practices</a>
+</div>
+
+</body>
+</html>

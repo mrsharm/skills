@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>.NET Agent Skills — Team Learning Paper</title>
+<style>
+  /* Word-compatible styling */
+  body { font-family: Calibri, Segoe UI, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.6; max-width: 8.5in; margin: 0.75in auto; }
+  h1 { font-size: 22pt; color: #0078d4; border-bottom: 3px solid #0078d4; padding-bottom: 8px; page-break-before: avoid; }
+  h2 { font-size: 16pt; color: #106ebe; margin-top: 28px; border-bottom: 1px solid #ccc; padding-bottom: 4px; page-break-before: always; }
+  h3 { font-size: 13pt; color: #333; margin-top: 20px; }
+  h4 { font-size: 11pt; color: #555; font-style: italic; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+  th { background-color: #0078d4; color: white; padding: 8px 10px; text-align: left; }
+  td { padding: 6px 10px; border: 1px solid #ddd; }
+  tr:nth-child(even) { background-color: #f5f5f5; }
+  code { font-family: Consolas, 'Courier New', monospace; background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 10pt; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 14px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; overflow-x: auto; line-height: 1.5; }
+  pre .kw { color: #569cd6; }  pre .str { color: #ce9178; }  pre .cmt { color: #6a9955; }
+  blockquote { border-left: 4px solid #0078d4; margin: 16px 0; padding: 8px 16px; background: #f0f7ff; color: #333; }
+  .callout { background: #fff3cd; border: 1px solid #ffc107; padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+  .callout-success { background: #d4edda; border-color: #28a745; }
+  .callout-info { background: #e7f3ff; border-color: #0078d4; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9pt; font-weight: bold; color: white; }
+  .badge-perf { background: #dc3545; } .badge-quality { background: #28a745; } .badge-dev { background: #0078d4; }
+  .badge-modern { background: #6f42c1; } .badge-build { background: #fd7e14; } .badge-proto { background: #17a2b8; }
+  .page-break { page-break-before: always; }
+  .cover { text-align: center; padding: 120px 0 60px 0; }
+  .cover h1 { font-size: 32pt; border: none; }
+  .cover .subtitle { font-size: 16pt; color: #555; margin-top: 8px; }
+  .cover .meta { font-size: 11pt; color: #888; margin-top: 40px; }
+  .toc a { text-decoration: none; color: #106ebe; }
+  .toc li { margin: 4px 0; }
+  .comparison td:first-child { font-weight: bold; width: 30%; }
+  .footer { text-align: center; color: #999; font-size: 9pt; margin-top: 40px; border-top: 1px solid #ddd; padding-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════  COVER PAGE  ═══════════════════════ -->
+<div class="cover">
+  <h1 style="font-size:32pt;">.NET Agent Skills</h1>
+  <div class="subtitle">A Learning Paper for the Development Team</div>
+  <p style="font-size:13pt; color:#0078d4; margin-top:20px;">
+    Authoring Best Practices &bull; Skill Library &bull; LLM-as-a-Judge Testing
+  </p>
+  <div class="meta">
+    <p><strong>Prepared by:</strong> .NET Developer Experience Team</p>
+    <p><strong>Date:</strong> February 2026</p>
+    <p><strong>Version:</strong> 1.0</p>
+    <p><strong>Repository:</strong> dotnet/skills</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════  TABLE OF CONTENTS  ═══════════════════════ -->
+<h2 style="page-break-before:always;">Table of Contents</h2>
+<ol class="toc" style="font-size:11pt; line-height:2;">
+  <li><a href="#s1">What Are Agent Skills?</a></li>
+  <li><a href="#s2">Why We Built a .NET Skill Library</a></li>
+  <li><a href="#s3">Best Practices Primer (Key Takeaways)</a></li>
+  <li><a href="#s4">Skill Categories &amp; the Developer Workflow</a></li>
+  <li><a href="#s5">Skill Reference Catalog (All 8 Skills)</a></li>
+  <li><a href="#s6">How to Author a New Skill (Step by Step)</a></li>
+  <li><a href="#s7">Testing Skills with LLM-as-a-Judge</a></li>
+  <li><a href="#s8">The C# SkillEvaluator Tool</a></li>
+  <li><a href="#s9">Without vs. With Skills — Real Examples</a></li>
+  <li><a href="#s10">How to Contribute</a></li>
+  <li><a href="#s11">Appendix: Quick Reference Card</a></li>
+</ol>
+
+<!-- ═══════════════════════  SECTION 1  ═══════════════════════ -->
+<h2 id="s1">1. What Are Agent Skills?</h2>
+
+<p>An <strong>agent skill</strong> is a reusable, task-focused instruction pack that teaches an AI coding assistant (GitHub Copilot, Claude Code, etc.) <em>how</em> to perform a specific developer task. Without skills, agents give generic advice and ask unnecessary follow-up questions. With skills, they follow structured workflows and produce production-ready results autonomously.</p>
+
+<p>A skill is a directory containing a <code>SKILL.md</code> file with:</p>
+<ul>
+  <li><strong>YAML frontmatter</strong> — name and description (for discovery)</li>
+  <li><strong>Workflow steps</strong> — numbered, sequential instructions the agent follows</li>
+  <li><strong>Validation checklist</strong> — how the agent verifies its own work</li>
+  <li><strong>Common pitfalls</strong> — traps to avoid with specific solutions</li>
+</ul>
+
+<div class="callout-info callout">
+  <strong>Key Insight:</strong> Skills don't replace the model's intelligence — they provide <em>domain-specific context</em> the model doesn't already have. Think of them as a senior developer's checklist, not a tutorial.
+</div>
+
+<!-- ═══════════════════════  SECTION 2  ═══════════════════════ -->
+<h2 id="s2">2. Why We Built a .NET Skill Library</h2>
+
+<h3>The Problem</h3>
+<table class="comparison">
+  <tr><th style="width:40%;">Without Skills</th><th>With Skills</th></tr>
+  <tr><td>Agent asks "which tool would you prefer?"</td><td>Uses the right tool immediately</td></tr>
+  <tr><td>Provides generic advice lists</td><td>Executes structured diagnostic workflows</td></tr>
+  <tr><td>Leaves tasks half-finished</td><td>Completes full workflow including cleanup</td></tr>
+  <tr><td>Creates placeholder code (<code>// TODO</code>)</td><td>Produces working, tested code</td></tr>
+  <tr><td>Takes 5–7 minutes with back-and-forth</td><td>Completes in 60–90 seconds autonomously</td></tr>
+</table>
+
+<h3>Measured Impact</h3>
+<table>
+  <tr><th>Metric</th><th>Without Skill</th><th>With Skill</th><th>Improvement</th></tr>
+  <tr><td>Time to resolution</td><td>5–7 min</td><td>60–90 sec</td><td><strong>4–5× faster</strong></td></tr>
+  <tr><td>Follow-up messages</td><td>3–5</td><td>0</td><td><strong>Fully autonomous</strong></td></tr>
+  <tr><td>Output quality</td><td>Generic lists</td><td>Validated, actionable</td><td><strong>Production-ready</strong></td></tr>
+</table>
+
+<!-- ═══════════════════════  SECTION 3  ═══════════════════════ -->
+<h2 id="s3">3. Best Practices Primer</h2>
+
+<p>These principles come from the <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices">official skill authoring guide</a>, adapted for .NET.</p>
+
+<h3>3.1 Be Concise</h3>
+<p>The context window is a shared resource. Only add information the model doesn't already know.</p>
+<table>
+  <tr><th>Ask yourself</th><th>If "yes" → keep it</th><th>If "no" → cut it</th></tr>
+  <tr><td>Does the model need this explanation?</td><td>✅</td><td>❌</td></tr>
+  <tr><td>Can I assume the model knows this?</td><td>❌ (remove)</td><td>✅ (keep)</td></tr>
+  <tr><td>Does this paragraph justify its token cost?</td><td>✅</td><td>❌</td></tr>
+</table>
+
+<h3>3.2 Match Specificity to Risk</h3>
+<table>
+  <tr><th>Freedom Level</th><th>When to Use</th><th>Example</th></tr>
+  <tr><td><strong>High</strong> (text)</td><td>Multiple valid approaches</td><td>Code review, refactoring</td></tr>
+  <tr><td><strong>Medium</strong> (pseudocode)</td><td>Preferred pattern, some variation OK</td><td>Test scaffolding, report templates</td></tr>
+  <tr><td><strong>Low</strong> (exact script)</td><td>Fragile/critical operations</td><td>DB migrations, deployment scripts</td></tr>
+</table>
+
+<blockquote>
+  <strong>Analogy:</strong> Narrow bridge with cliffs → exact instructions (low freedom). Open field → general direction (high freedom).
+</blockquote>
+
+<h3>3.3 Structure &amp; Progressive Disclosure</h3>
+<ul>
+  <li>Keep <code>SKILL.md</code> under <strong>500 lines</strong></li>
+  <li>Split reference material into sibling files (<code>REFERENCE.md</code>, <code>EXAMPLES.md</code>)</li>
+  <li>References must be <strong>one level deep</strong> from SKILL.md (no chains)</li>
+  <li>Use a <strong>table of contents</strong> in reference files over 100 lines</li>
+</ul>
+
+<h3>3.4 Seven Rules at a Glance</h3>
+<table>
+  <tr><th>#</th><th>Rule</th><th>Bad Example</th><th>Good Example</th></tr>
+  <tr><td>1</td><td>Be concise</td><td>Explain what PDFs are</td><td>Show the 3-line code snippet</td></tr>
+  <tr><td>2</td><td>Provide defaults</td><td>"Use xUnit, NUnit, or MSTest"</td><td>"Use xUnit" (with NUnit escape hatch)</td></tr>
+  <tr><td>3</td><td>Consistent terminology</td><td>Mix "assembly", "DLL", "binary"</td><td>Always "assembly"</td></tr>
+  <tr><td>4</td><td>Forward slashes only</td><td><code>scripts\helper.py</code></td><td><code>scripts/helper.py</code></td></tr>
+  <tr><td>5</td><td>No time-sensitive info</td><td>"Before August 2025, use..."</td><td>Current method + "Old patterns" section</td></tr>
+  <tr><td>6</td><td>Feedback loops</td><td>Make all changes, then test</td><td>Change → build → fix → build again</td></tr>
+  <tr><td>7</td><td>Evaluations first</td><td>Write skill, then test</td><td>Define 3+ test cases, then write the skill</td></tr>
+</table>
+
+<!-- ═══════════════════════  SECTION 4  ═══════════════════════ -->
+<h2 id="s4">4. Skill Categories &amp; the Developer Workflow</h2>
+
+<p>Our skills are organized around the natural developer workflow:</p>
+
+<pre style="background:#fff; color:#333; border:2px solid #0078d4; text-align:center; font-size:11pt;">
+Write  ──►  Build  ──►  Test  ──►  Run  ──►  Profile  ──►  Ship
+  │           │          │         │          │            │
+  ▼           ▼          ▼         ▼          ▼            ▼
+Prototyping  Triage    Quality    Dev     Diagnostics   Modernization
+</pre>
+
+<table>
+  <tr><th>Category</th><th>Skills</th><th>Workflow Stage</th><th>Why It Exists</th></tr>
+  <tr>
+    <td><span class="badge badge-proto">Prototyping</span></td>
+    <td><code>csharp-scripts</code></td>
+    <td>Write</td>
+    <td>Quick experiments without project scaffolding</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-build">Build Triage</span></td>
+    <td><code>analyzing-build-errors</code></td>
+    <td>Build</td>
+    <td>Systematic CS/NU/MSB/NETSDK error categorization</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-quality">Quality</span></td>
+    <td><code>writing-xunit-tests</code></td>
+    <td>Test</td>
+    <td>Real tests with mocking, fixtures, and coverage</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-dev">Development</span></td>
+    <td><code>creating-minimal-apis</code></td>
+    <td>Run</td>
+    <td>Production-ready REST API scaffolding</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-perf">Diagnostics</span></td>
+    <td><code>profiling-dotnet-apps</code><br><code>debugging-memory-leaks</code></td>
+    <td>Profile</td>
+    <td>Different tools/workflows for CPU vs. memory issues</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-modern">Modernization</span></td>
+    <td><code>migrating-dotnet-versions</code><br><code>refactoring-to-async</code></td>
+    <td>Ship / Evolve</td>
+    <td>Orthogonal upgrade paths (project files vs. code)</td>
+  </tr>
+</table>
+
+<div class="callout">
+  <strong>Why split Diagnostics into two skills?</strong> Profiling focuses on CPU traces and counter monitoring; memory leak debugging uses heap dumps and GC root tracing. Different tools, different mental models, different fixes. Merging them would exceed the 500-line limit.
+</div>
+
+<!-- ═══════════════════════  SECTION 5  ═══════════════════════ -->
+<h2 id="s5">5. Skill Reference Catalog</h2>
+
+<table>
+  <tr><th>#</th><th>Skill</th><th>What It Does</th><th>Key Commands / Patterns</th></tr>
+  <tr><td>1</td><td><code>csharp-scripts</code></td><td>Run single-file C# programs as scripts</td><td><code>dotnet hello.cs</code>, <code>#:package</code> directives</td></tr>
+  <tr><td>2</td><td><code>analyzing-build-errors</code></td><td>Categorize &amp; fix build failures</td><td>Error code lookup tables (CS/NU/MSB/NETSDK), clean rebuild shortcut</td></tr>
+  <tr><td>3</td><td><code>writing-xunit-tests</code></td><td>Create xUnit test projects with mocking</td><td>AAA pattern, <code>[Theory]</code>, Moq, class/collection fixtures</td></tr>
+  <tr><td>4</td><td><code>creating-minimal-apis</code></td><td>Build ASP.NET Core Minimal APIs</td><td><code>MapGroup</code>, endpoint organization, OpenAPI, FluentValidation</td></tr>
+  <tr><td>5</td><td><code>profiling-dotnet-apps</code></td><td>Profile CPU, GC, and thread pool issues</td><td><code>dotnet-counters</code>, <code>dotnet-trace</code>, SpeedScope conversion</td></tr>
+  <tr><td>6</td><td><code>debugging-memory-leaks</code></td><td>Diagnose managed memory leaks</td><td><code>dotnet-dump</code>, <code>dumpheap -stat</code>, <code>gcroot</code>, leak pattern catalog</td></tr>
+  <tr><td>7</td><td><code>migrating-dotnet-versions</code></td><td>Upgrade TFMs and resolve breaking changes</td><td><code>upgrade-assistant</code>, NuGet alignment, .NET FW → modern path</td></tr>
+  <tr><td>8</td><td><code>refactoring-to-async</code></td><td>Convert blocking I/O to async/await</td><td>Bottom-up conversion, <code>CancellationToken</code> propagation, anti-pattern grep</td></tr>
+</table>
+
+<h3>Skill File Structure</h3>
+<pre>
+skills/
+  &lt;skill-name&gt;/
+    SKILL.md              <span class="cmt"># Main instructions (loaded when triggered)</span>
+    REFERENCE.md          <span class="cmt"># Detailed reference (loaded as needed)</span>
+    EXAMPLES.md           <span class="cmt"># Usage examples (loaded as needed)</span>
+    scripts/              <span class="cmt"># Utility scripts (executed, not loaded)</span>
+</pre>
+
+<h3>SKILL.md Anatomy</h3>
+<pre>
+---
+name: debugging-memory-leaks
+description: Diagnose and fix memory leaks in .NET applications using
+  diagnostic tools, heap analysis, and GC root tracing. Use when a .NET
+  application shows increasing memory usage or OutOfMemoryException.
+---
+
+# Debugging Memory Leaks
+
+## When to Use          <span class="cmt">← Activation conditions</span>
+## When Not to Use      <span class="cmt">← Boundary guard</span>
+## Inputs               <span class="cmt">← What the agent needs</span>
+## Workflow              <span class="cmt">← Numbered steps with checkpoints</span>
+  ### Step 1: ...
+  ### Step 2: ...
+## Validation            <span class="cmt">← How to verify success</span>
+## Common Pitfalls       <span class="cmt">← Traps with solutions</span>
+</pre>
+
+<!-- ═══════════════════════  SECTION 6  ═══════════════════════ -->
+<h2 id="s6">6. How to Author a New Skill</h2>
+
+<h3>Step-by-Step Workflow</h3>
+<ol>
+  <li><strong>Identify the gap.</strong> Try the task with the agent <em>without</em> a skill. Document specific failures.</li>
+  <li><strong>Create test cases first.</strong> Write <code>tests/&lt;skill-name&gt;/README.md</code> (prompt), <code>good.md</code> (ideal behavior), <code>bad.md</code> (typical failure).</li>
+  <li><strong>Calibrate the rubric.</strong> Run the SkillEvaluator on good/bad to verify the rubric discriminates.</li>
+  <li><strong>Write minimal SKILL.md.</strong> Just enough to pass the gap from step 1. Don't over-document.</li>
+  <li><strong>Test with the agent.</strong> Load the skill and run the original prompt. Save the transcript.</li>
+  <li><strong>Evaluate.</strong> Run the SkillEvaluator on the saved transcript. Pass threshold: ≥ 0.75.</li>
+  <li><strong>Iterate.</strong> If the score is low, observe what the agent got wrong, refine the skill, re-evaluate.</li>
+  <li><strong>Submit a PR.</strong> Include the skill + test case. CI runs calibration automatically.</li>
+</ol>
+
+<h3>YAML Frontmatter Rules</h3>
+<table>
+  <tr><th>Field</th><th>Rules</th></tr>
+  <tr><td><code>name</code></td><td>Max 64 chars, lowercase + hyphens only, no reserved words (anthropic, claude)</td></tr>
+  <tr><td><code>description</code></td><td>Max 1024 chars, third person, includes <em>what</em> + <em>when</em>, no XML tags</td></tr>
+</table>
+
+<h3>Naming Convention</h3>
+<p>Use gerund form (verb + -ing):</p>
+<table>
+  <tr><th>✅ Good</th><th>❌ Avoid</th></tr>
+  <tr><td><code>profiling-dotnet-apps</code></td><td><code>helper</code></td></tr>
+  <tr><td><code>writing-xunit-tests</code></td><td><code>utils</code></td></tr>
+  <tr><td><code>debugging-memory-leaks</code></td><td><code>tools</code></td></tr>
+</table>
+
+<!-- ═══════════════════════  SECTION 7  ═══════════════════════ -->
+<h2 id="s7">7. Testing Skills with LLM-as-a-Judge</h2>
+
+<h3>The Challenge</h3>
+<p>Traditional unit tests verify <em>code correctness</em>. Skills produce <em>behavioral outcomes</em> from natural language — you can't regex-match "good agent behavior." LLM-as-a-Judge uses a separate, powerful LLM (Claude Opus 4.6) to evaluate whether an agent's behavior matches quality criteria.</p>
+
+<pre style="background:#fff; color:#333; border:2px solid #0078d4; text-align:center; font-size:10pt;">
+Test Prompt  →  Agent + Skill  →  Transcript  →  LLM Judge  →  Score Card
+                                                     ↑            (pass/fail)
+                                        good.md + bad.md + rubric
+</pre>
+
+<h3>Test Case Structure</h3>
+<pre>
+tests/&lt;skill-name&gt;/
+├── README.md       <span class="cmt"># Input prompt + success definition</span>
+├── good.md         <span class="cmt"># Expected behavior WITH the skill</span>
+└── bad.md          <span class="cmt"># Typical behavior WITHOUT the skill</span>
+</pre>
+
+<h3>The Universal Rubric (6 Criteria)</h3>
+<table>
+  <tr><th>Criterion</th><th>Weight</th><th>What It Measures</th></tr>
+  <tr><td>Skill activation</td><td>1.0</td><td>Did the agent load the correct skill?</td></tr>
+  <tr><td>Tool usage</td><td>2.0</td><td>Did it use the right tools/commands?</td></tr>
+  <tr><td>Structured workflow</td><td>2.0</td><td>Did it follow systematic steps?</td></tr>
+  <tr><td>Actionable output</td><td>2.0</td><td>Is the output concrete and usable?</td></tr>
+  <tr><td>Completeness</td><td>1.0</td><td>Did it finish without loose ends?</td></tr>
+  <tr><td>No unnecessary questions</td><td>1.0</td><td>Did it proceed autonomously?</td></tr>
+</table>
+
+<h3>Scoring Formula</h3>
+<p style="text-align:center; font-size:12pt; font-family: Cambria Math, serif;">
+  weighted_score = Σ(score<sub>i</sub> × weight<sub>i</sub>) / Σ(weight<sub>i</sub>)
+</p>
+<p>Each criterion is scored 0.0 (not met), 0.5 (partially met), or 1.0 (fully met). A skill <strong>passes</strong> if the weighted score ≥ <strong>0.75</strong>.</p>
+
+<h3>Classification Matrix</h3>
+<table>
+  <tr><th></th><th>Agent + Skill → Good</th><th>Agent + Skill → Bad</th></tr>
+  <tr><td><strong>Agent alone → Bad</strong></td><td style="background:#d4edda;"><strong>CORRECT</strong> (skill helps)</td><td style="background:#f8d7da;"><strong>INCORRECT</strong> (skill broken)</td></tr>
+  <tr><td><strong>Agent alone → Good</strong></td><td style="background:#fff3cd;"><strong>INEFFECTIVE</strong> (skill unnecessary)</td><td style="background:#f8d7da;"><strong>REGRESSION</strong> (skill harmful)</td></tr>
+</table>
+
+<!-- ═══════════════════════  SECTION 8  ═══════════════════════ -->
+<h2 id="s8">8. The C# SkillEvaluator Tool</h2>
+
+<p>A .NET 8 console application in <code>tests/SkillEvaluator/</code> that uses the <strong>GitHub Copilot SDK</strong> for LLM interactions. No separate API keys needed — it authenticates via the Copilot CLI.</p>
+
+<h3>Architecture</h3>
+<table>
+  <tr><th>File</th><th>Responsibility</th></tr>
+  <tr><td><code>Program.cs</code></td><td>CLI commands: evaluate, calibrate, list, help</td></tr>
+  <tr><td><code>JudgeEvaluator.cs</code></td><td>Core: CopilotClient → LLM session → JSON scorecard parsing</td></tr>
+  <tr><td><code>TestCaseLoader.cs</code></td><td>Discovers skills, loads README/good/bad, extracts prompts</td></tr>
+  <tr><td><code>Models.cs</code></td><td>Typed models: Rubric, EvaluationResult, CriterionScore</td></tr>
+</table>
+
+<h3>How It Works (Under the Hood)</h3>
+<ol>
+  <li>Creates a <code>CopilotClient</code> → starts the Copilot CLI server</li>
+  <li>Opens a session with <code>SystemMessageMode.Replace</code> (pure JSON evaluator — no agent tools)</li>
+  <li>Sends the rubric + good/bad references + candidate transcript as a single prompt</li>
+  <li>Parses the returned JSON scorecard into typed <code>EvaluationResult</code></li>
+  <li>Reports pass/fail with per-criterion breakdowns</li>
+</ol>
+
+<h3>Commands</h3>
+<table>
+  <tr><th>Command</th><th>What It Does</th></tr>
+  <tr><td><code>dotnet run -- list</code></td><td>Show all discovered skill test cases</td></tr>
+  <tr><td><code>dotnet run -- calibrate --skill &lt;name&gt;</code></td><td>Run judge on good.md &amp; bad.md to verify rubric separation</td></tr>
+  <tr><td><code>dotnet run -- calibrate-all</code></td><td>Calibrate every skill in one pass</td></tr>
+  <tr><td><code>dotnet run -- evaluate --skill &lt;name&gt; --transcript &lt;path&gt;</code></td><td>Score a real transcript</td></tr>
+  <tr><td><code>dotnet run -- evaluate-all --transcripts-dir &lt;dir&gt;</code></td><td>Batch-evaluate all transcripts</td></tr>
+</table>
+
+<div class="callout callout-success">
+  <strong>Getting Started:</strong><br>
+  <code>copilot auth login</code> → <code>cd tests/SkillEvaluator</code> → <code>dotnet run -- list</code>
+</div>
+
+<!-- ═══════════════════════  SECTION 9  ═══════════════════════ -->
+<h2 id="s9">9. Without vs. With Skills — Real Examples</h2>
+
+<h3>Example: "My app keeps getting OOM-killed"</h3>
+
+<table>
+  <tr><th style="width:50%;">❌ Without Skill (bad.md)</th><th>✅ With Skill (good.md)</th></tr>
+  <tr>
+    <td>
+      <ol>
+        <li>Agent gives 5-bullet generic advice list</li>
+        <li>User asks "can you actually run diagnostic tools?"</li>
+        <li>Agent installs <code>dotnet-dump</code> locally (wrong)</li>
+        <li>Agent lists the dump, suggests "look for types from your namespace"</li>
+        <li>User has to ask again for analysis</li>
+        <li><strong>~9 minutes, 3 follow-ups, no root cause</strong></li>
+      </ol>
+    </td>
+    <td>
+      <ol>
+        <li>Agent loads <code>debugging-memory-leaks</code> skill</li>
+        <li>Runs <code>dotnet-counters monitor</code> — confirms leak pattern</li>
+        <li>Captures heap dump with <code>dotnet-dump collect</code></li>
+        <li>Runs <code>dumpheap -stat</code> — finds top type</li>
+        <li>Traces with <code>gcroot</code> — identifies static ConcurrentDictionary</li>
+        <li>Recommends MemoryCache with TTL</li>
+        <li><strong>~90 seconds, 0 follow-ups, root cause + fix</strong></li>
+      </ol>
+    </td>
+  </tr>
+</table>
+
+<h3>Example: "Upgrade my .NET 6 project to .NET 8"</h3>
+
+<table>
+  <tr><th style="width:50%;">❌ Without Skill</th><th>✅ With Skill</th></tr>
+  <tr>
+    <td>
+      <ul>
+        <li>Updates only the main project, misses test project</li>
+        <li>Doesn't update NuGet packages</li>
+        <li>Doesn't run tests after migration</li>
+        <li>Leaves warnings unaddressed</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Scans all .csproj files, updates both</li>
+        <li>Checks <code>dotnet list package --outdated</code> and upgrades</li>
+        <li>Builds, runs tests, verifies 0 errors</li>
+        <li>Produces a summary table of all changes</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+<!-- ═══════════════════════  SECTION 10  ═══════════════════════ -->
+<h2 id="s10">10. How to Contribute</h2>
+
+<h3>Quick Checklist</h3>
+<ol>
+  <li>Search existing issues/PRs to avoid duplicates</li>
+  <li>Open an issue before submitting a PR for new skills</li>
+  <li>One skill per PR</li>
+  <li>Include a test case (<code>README.md</code> + <code>good.md</code> + <code>bad.md</code>)</li>
+  <li>Run <code>dotnet run -- calibrate --skill &lt;name&gt;</code> to verify rubric separation</li>
+  <li>Follow the YAML frontmatter rules (lowercase, hyphens, ≤64 chars)</li>
+</ol>
+
+<h3>What We Look For</h3>
+<table>
+  <tr><th>✅ Likely to Accept</th><th>❌ Likely to Decline</th></tr>
+  <tr><td>Narrow scope, easy to review</td><td>Broad frameworks or large reorganizations</td></tr>
+  <tr><td>Motivated by a real use case</td><td>Duplicate of existing skill</td></tr>
+  <tr><td>Includes validation steps</td><td>Contains private environment details</td></tr>
+  <tr><td>Verifiable by a reviewer</td><td>Depends on proprietary tools</td></tr>
+</table>
+
+<!-- ═══════════════════════  SECTION 11  ═══════════════════════ -->
+<h2 id="s11">Appendix: Quick Reference Card</h2>
+
+<h3>Skill Trigger Cheat Sheet</h3>
+<table>
+  <tr><th>When the User Says...</th><th>Skill That Activates</th></tr>
+  <tr><td>"Try this C# snippet quickly"</td><td><code>csharp-scripts</code></td></tr>
+  <tr><td>"My build is broken / CS0246 / NU1605"</td><td><code>analyzing-build-errors</code></td></tr>
+  <tr><td>"Add tests for this class"</td><td><code>writing-xunit-tests</code></td></tr>
+  <tr><td>"Create a REST API for products"</td><td><code>creating-minimal-apis</code></td></tr>
+  <tr><td>"Why is my API so slow?"</td><td><code>profiling-dotnet-apps</code></td></tr>
+  <tr><td>"Memory keeps growing / OOM-killed"</td><td><code>debugging-memory-leaks</code></td></tr>
+  <tr><td>"Upgrade to .NET 8"</td><td><code>migrating-dotnet-versions</code></td></tr>
+  <tr><td>"Convert to async / thread pool starvation"</td><td><code>refactoring-to-async</code></td></tr>
+</table>
+
+<h3>SkillEvaluator Commands</h3>
+<pre>
+<span class="cmt"># List all skill test cases</span>
+dotnet run --project tests/SkillEvaluator -- list
+
+<span class="cmt"># Calibrate one skill</span>
+dotnet run --project tests/SkillEvaluator -- calibrate --skill debugging-memory-leaks
+
+<span class="cmt"># Calibrate all skills</span>
+dotnet run --project tests/SkillEvaluator -- calibrate-all
+
+<span class="cmt"># Evaluate a transcript</span>
+dotnet run --project tests/SkillEvaluator -- evaluate --skill debugging-memory-leaks --transcript candidate.md
+
+<span class="cmt"># Batch evaluate</span>
+dotnet run --project tests/SkillEvaluator -- evaluate-all --transcripts-dir transcripts/ --output results.json
+</pre>
+
+<h3>Key Repository Paths</h3>
+<table>
+  <tr><th>Path</th><th>Contents</th></tr>
+  <tr><td><code>skills/&lt;name&gt;/SKILL.md</code></td><td>Skill implementations</td></tr>
+  <tr><td><code>tests/&lt;name&gt;/{README,good,bad}.md</code></td><td>Test cases</td></tr>
+  <tr><td><code>tests/universal-rubric.json</code></td><td>Default scoring rubric</td></tr>
+  <tr><td><code>tests/SkillEvaluator/</code></td><td>C# LLM-as-Judge tool</td></tr>
+  <tr><td><code>docs/BEST-PRACTICES-PRIMER.md</code></td><td>Authoring guidelines</td></tr>
+  <tr><td><code>docs/SKILL-CATEGORIES.md</code></td><td>Category rationale</td></tr>
+  <tr><td><code>docs/LLM-AS-JUDGE-TESTING.md</code></td><td>Testing methodology</td></tr>
+  <tr><td><code>docs/FUTURE-SKILL-IDEAS.md</code></td><td>Prioritized backlog</td></tr>
+</table>
+
+<div class="footer">
+  .NET Agent Skills — Team Learning Paper &bull; February 2026 &bull; dotnet/skills
+</div>
+
+</body>
+</html>

@@ -1,0 +1,37 @@
+scenarios:
+  - name: "Triage mixed CS and NU build errors"
+    prompt: "My dotnet build is failing with a bunch of CS and NU errors after I merged a branch. Can you figure out what's wrong?"
+    setup:
+      copy_test_files: true
+    assertions:
+      - type: "output_matches"
+        pattern: "(CS0246|CS0029|CS8600)"
+      - type: "output_matches"
+        pattern: "(dotnet build|dotnet restore)"
+    rubric:
+      - "Ran dotnet build to reproduce and capture the full error output"
+      - "Categorized errors by type (CS compiler, NU NuGet, MSB MSBuild, NETSDK)"
+      - "Identified CS0246 missing type/namespace errors and suggested adding references or using directives"
+      - "Identified NuGet resolution errors and suggested package version fixes or restore commands"
+      - "Applied targeted fixes and verified the build succeeds after changes"
+      - "Did not make unrelated changes outside of the failing code"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "Resolve NuGet restore failures"
+    prompt: "Running dotnet restore is failing with NU1100 and NU1202 errors. Some packages can't be found and others aren't compatible with my target framework."
+    setup:
+      copy_test_files: true
+    assertions:
+      - type: "output_matches"
+        pattern: "(NU1100|NU1202|NuGet)"
+      - type: "output_matches"
+        pattern: "(dotnet restore|nuget)"
+    rubric:
+      - "Ran dotnet restore with verbose output to capture full error details"
+      - "Identified NU1100 (unable to resolve package) and suggested checking package name or NuGet source"
+      - "Identified NU1202 (package not compatible) and suggested a compatible version or alternative"
+      - "Checked NuGet source configuration with dotnet nuget list source"
+      - "Resolved the restore errors and verified dotnet restore succeeds"
+    expect_tools: ["bash"]
+    timeout: 120

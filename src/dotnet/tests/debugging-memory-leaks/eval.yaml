@@ -1,0 +1,37 @@
+scenarios:
+  - name: "Diagnose managed memory leak in ASP.NET Core app"
+    prompt: "My ASP.NET Core app is using 2GB of memory and growing. The container keeps getting OOM-killed every few hours. Can you help me figure out what's leaking?"
+    assertions:
+      - type: "output_contains"
+        value: "dotnet-counters"
+      - type: "output_contains"
+        value: "dotnet-dump"
+      - type: "output_matches"
+        pattern: "(dumpheap|dump.*heap|heap.*stat)"
+      - type: "output_matches"
+        pattern: "(gcroot|gc.*root)"
+    rubric:
+      - "Installed or verified dotnet-counters and dotnet-dump diagnostic tools before diagnosing"
+      - "Used dotnet-counters to confirm memory growth pattern (gc-heap-size increasing)"
+      - "Collected a heap dump using dotnet-dump collect"
+      - "Analyzed the heap with dumpheap -stat to identify the largest/growing types"
+      - "Used gcroot to trace retention paths from GC roots to leaking objects"
+      - "Identified or suggested common leak patterns (static events, unbounded caches, HttpClient misuse)"
+      - "Recommended a concrete fix and verification steps"
+    expect_tools: ["bash"]
+    timeout: 120
+
+  - name: "Memory leak skill should not activate for CPU-bound issues"
+    prompt: "My .NET app is consuming 100% CPU. Can you help me figure out what method is using all the CPU?"
+    assertions:
+      - type: "output_not_contains"
+        value: "dumpheap"
+      - type: "output_not_contains"
+        value: "memory leak"
+      - type: "output_not_matches"
+        pattern: "(gcroot|gc.*root)"
+    rubric:
+      - "Did NOT suggest memory leak diagnostic tools like dumpheap or gcroot"
+      - "Focused on CPU profiling rather than memory analysis"
+      - "Suggested appropriate CPU diagnostic tools (dotnet-trace, dotnet-counters cpu-usage, or profiler)"
+    timeout: 60
