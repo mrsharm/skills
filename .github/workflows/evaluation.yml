@@ -1,3 +1,5 @@
+# Forked repositories must set a COPILOT_GITHUB_TOKEN secret with
+# "Copilot Requests" permissions to run evaluations.
 name: evaluation
 
 on:
@@ -71,6 +73,11 @@ permissions:
 
 jobs:
   discover:
+    # Scheduled runs should only happen in the upstream repo, not in forks.
+    # Without this guard, forks that have activated Actions (e.g. by pushing a
+    # branch for a PR) will run the evaluation schedule indefinitely, consuming
+    # the fork owner's Actions minutes and storage quota.
+    if: github.event_name != 'schedule' || github.repository == 'dotnet/skills'
     runs-on: ubuntu-latest
     outputs:
       entries: ${{ steps.find.outputs.entries }}
@@ -80,7 +87,7 @@ jobs:
       has_plugins: ${{ steps.find.outputs.has_plugins }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -185,10 +192,10 @@ jobs:
     if: needs.discover.outputs.has_entries == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -196,7 +203,7 @@ jobs:
         run: dotnet publish eng/skill-validator/src/SkillValidator.csproj
 
       - name: Upload built validator
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: skill-validator-dist
           path: artifacts/publish/SkillValidator/release/
@@ -215,20 +222,21 @@ jobs:
 
     steps:
       - name: Checkout skills repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
       - name: Download built validator
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: skill-validator-dist
           path: artifacts/publish/SkillValidator/release/
 
       - name: Select random Copilot token
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         id: select-token
         env:
           TOKEN_1: ${{ secrets.COPILOT_GITHUB_TOKEN }}
@@ -270,9 +278,8 @@ jobs:
           echo "token=${TOKENS[$IDX]}" >> $GITHUB_OUTPUT
 
       - name: Run skill-validator
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
-          GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.select-token.outputs.token || secrets.COPILOT_GITHUB_TOKEN }}
           RESULTS_PATH: artifacts/TestResults/skill-validator/${{ matrix.entry.name }}
         run: |
           # Restore execute permissions lost during artifact upload/download
@@ -301,7 +308,7 @@ jobs:
 
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: skill-validator-results-${{ matrix.entry.name }}
           path: artifacts/TestResults/skill-validator/${{ matrix.entry.name }}/
@@ -314,14 +321,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all result artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: skill-validator-results-*
           path: all-results/
           merge-multiple: false
 
       - name: Download built validator
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: skill-validator-dist
           path: artifacts/publish/SkillValidator/release/
@@ -380,10 +387,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download evaluation artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: skill-validator-results-*
           path: all-results/

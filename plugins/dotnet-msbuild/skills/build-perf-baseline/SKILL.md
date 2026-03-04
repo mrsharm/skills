@@ -336,7 +336,7 @@ In a binlog, look for:
 - **Uneven load**: Some build nodes idle while others are overloaded
 - **Single-project bottleneck**: One large project on the critical path that blocks everything
 
-Use `get_node_timeline` in binlog analysis to see build node utilization.
+Use `grep 'Target Performance Summary' -A 30 full.log` in binlog analysis to see build node utilization.
 
 ### Reducing the Critical Path
 
@@ -404,7 +404,7 @@ Is your no-op build slow (> 10s per project)?
     │       Is compilation slow?
     │       ├── YES
     │       │   Are analyzers/generators slow?
-    │       │   ├── YES → See `analyzer-performance` skill
+    │       │   ├── YES → See `build-perf-diagnostics` skill
     │       │   └── NO → Check parallelism, graph build, critical path (this skill + `build-parallelism`)
     │       └── NO → Check custom targets (binlog analysis via `build-perf-diagnostics`)
     └── NO
